@@ -1,18 +1,121 @@
-<%- include('head', { title: 'Sign Up' }) -%>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign Up</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f2f2f2;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+      }
 
-<h1>Sign Up</h1>
-<%- message %>
-<form action="/signup" method="POST">
-  <div>
-    <label for="username">Username:</label>
-    <input type="text" id="username" name="username" required />
-  </div>
-  <div>
-    <label for="password">Password:</label>
-    <input type="password" id="password" name="password" required />
-  </div>
-  <button type="submit">Sign Up</button>
-</form>
-<p>Already have an account? <a href="/login">Login</a></p>
+      .signup-container {
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        width: 300px;
+      }
 
-<%- include('foot') -%>
+      h1 {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+      }
+
+      button[type="submit"] {
+        width: 100%;
+        padding: 10px;
+        background-color: #4caf50;
+        color: #fff;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+
+      .links {
+        text-align: center;
+        margin-top: 20px;
+      }
+
+      .links a {
+        color: #4caf50;
+        text-decoration: none;
+      }
+
+      .links a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="signup-container">
+      <h1>Sign Up</h1>
+      <%- message %>
+      <form action="/signup" method="POST" onsubmit="return validateForm()">
+        <div class="form-group">
+          <label for="name">Name:</label>
+          <input type="text" id="name" name="name" minlength="2" required />
+        </div>
+        <div class="form-group">
+          <label for="email">Email:</label>
+          <input type="email" id="email" name="email" required />
+        </div>
+        <div class="form-group">
+          <label for="password">Password:</label>
+          <input type="password" id="password" name="password" required />
+        </div>
+        <div class="form-group">
+          <label for="confirmPassword">Confirm Password:</label>
+          <input
+            type="password"
+            id="confirmPassword"
+            name="confirmPassword"
+            required
+          />
+        </div>
+        <button type="submit">Sign Up</button>
+      </form>
+      <div class="links">
+        <p>Already have an account? <a href="/login">Login</a></p>
+      </div>
+    </div>
+
+    <script>
+      function validateForm() {
+        const password = document.getElementById("password").value;
+        const confirmPassword =
+          document.getElementById("confirmPassword").value;
+
+        if (password !== confirmPassword) {
+          alert("Passwords do not match!");
+          return false;
+        }
+
+        return true;
+      }
+    </script>
+  </body>
+</html>

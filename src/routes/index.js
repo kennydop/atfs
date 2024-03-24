@@ -1,15 +1,15 @@
 var express = require("express");
 var router = express.Router();
 
-const authUtils = require("../controllers/auth");
+const authController = require("../controllers/auth.controller");
 
 router.get("/login", function (req, res) {
   res.render("login");
 });
 
 router.post("/login", function (req, res, next) {
-  authUtils.authenticate(
-    req.body.username,
+  authController.authenticate(
+    req.body.email,
     req.body.password,
     function (err, user) {
       if (err) return next(err);
@@ -26,7 +26,7 @@ router.post("/login", function (req, res, next) {
             user.name +
             ' click to <a href="/logout">logout</a>. ' +
             ' You may now access <a href="/restricted">/restricted</a>.';
-          res.redirect("back");
+          res.redirect("/");
         });
       } else {
         req.session.error =
@@ -44,8 +44,9 @@ router.get("/signup", function (req, res) {
 });
 
 router.post("/signup", function (req, res, next) {
-  authUtils.registerUser(
-    req.body.username,
+  authController.registerUser(
+    req.body.name,
+    req.body.email,
     req.body.password,
     function (err, user) {
       if (err) return next(err);
@@ -72,7 +73,7 @@ router.get("/logout", function (req, res) {
 });
 
 /* GET home page. */
-router.get("/", authUtils.restrict, function (req, res, next) {
+router.get("/", authController.restrict, function (req, res, next) {
   res.render("index", { title: "Express" });
 });
 
