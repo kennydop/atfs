@@ -11,6 +11,8 @@ const cors = require("cors");
 
 const indexRouter = require("./src/routes/index.route");
 const authRouter = require("./src/routes/auth.route");
+const adminRouter = require("./src/routes/admin.route");
+const fileRouter = require("./src/routes/file.route");
 const errorHandler = require("./src/helpers/errorHandler");
 
 if (process.env.NODE_ENV !== "production") {
@@ -39,6 +41,7 @@ app.use(logger("dev"));
 app.use(express.json());
 app.use(helmet());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(
   session({
     resave: false, // don't save session if unmodified
@@ -46,7 +49,6 @@ app.use(
     secret: process.env.COOKIE_SECRET,
   })
 );
-app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(cors(corsOptions));
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -64,6 +66,8 @@ app.use(function (req, res, next) {
 
 app.use("/", indexRouter);
 app.use("/auth", authRouter);
+app.use("/admin", adminRouter);
+app.use("/file", fileRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
