@@ -15,8 +15,10 @@
     "express-session": "^1.18.0",
     "helmet": "^7.1.0",
     "http-errors": "~1.6.3",
+    "mailgen": "^2.0.28",
     "mongoose": "^8.2.3",
     "morgan": "~1.9.1",
+    "nodemailer": "^6.9.13",
     "pbkdf2-password": "^1.2.1"
   }
 }

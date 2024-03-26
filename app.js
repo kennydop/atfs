@@ -9,7 +9,9 @@ const dotenv = require("dotenv");
 const helmet = require("helmet");
 const cors = require("cors");
 
-const indexRouter = require("./src/routes/index");
+const indexRouter = require("./src/routes/index.route");
+const authRouter = require("./src/routes/auth.route");
+const errorHandler = require("./src/helpers/errorHandler");
 
 if (process.env.NODE_ENV !== "production") {
   // Load environment variables from .env file in non prod environments
@@ -61,6 +63,7 @@ app.use(function (req, res, next) {
 });
 
 app.use("/", indexRouter);
+app.use("/auth", authRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
@@ -68,14 +71,6 @@ app.use(function (req, res, next) {
 });
 
 // error handler
-app.use(function (err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get("env") === "development" ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render("error");
-});
+app.use(errorHandler);
 
 module.exports = app;

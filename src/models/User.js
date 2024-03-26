@@ -15,12 +15,13 @@ const UserSchema = new mongoose.Schema(
     profilePicture: {
       type: String,
     },
-    isAdmin: {
+    emailVerified: {
       type: Boolean,
       default: false,
     },
-    passwordResetToken: {
-      type: String,
+    isAdmin: {
+      type: Boolean,
+      default: false,
     },
     salt: {
       type: String,
@@ -35,7 +36,6 @@ const UserSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: {
       transform: function (doc, ret, options) {
-        delete ret.passwordResetToken;
         delete ret.hash;
         delete ret.salt;
         delete ret.updatedAt;
