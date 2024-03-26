@@ -13,7 +13,6 @@ async function authenticate(req, res, next) {
   const email = req.body.email;
   const pass = req.body.password;
   try {
-    if (!module.parent) console.log("authenticating %s:%s", email, pass);
     // query the db for the given email
     const user = await User.findOne({
       email: email,
@@ -27,19 +26,27 @@ async function authenticate(req, res, next) {
     // apply the same algorithm to the POSTed password, applying
     // the hash against the pass / salt, if there is a match we
     // found the user
-    hash({ password: pass, salt: user.salt }, function (err, pass, salt, hash) {
-      if (err) return next(err);
-      if (hash === user.hash) {
-        req.session.regenerate(function () {
-          // Store the user's primary key
-          // in the session store to be retrieved,
-          // or in this case the entire user object
-          req.session.user = user;
-          req.session.success = `Authenticated as ${user.name}`;
-        });
+    hash(
+      { password: pass, salt: user.salt },
+      async function (err, pass, salt, hash) {
+        if (err) return next(err);
+        if (hash === user.hash) {
+          await req.session.regenerate(function () {
+            // Store the user's primary key
+            // in the session store to be retrieved,
+            // or in this case the entire user object
+            req.session.user = user;
+            req.session.success = `Authenticated as ${user.name}`;
+          });
+          return res.status(200).send({
+            message: "Authenticated successfully",
+            user: user,
+          });
+        } else {
+          return next(new ServerError("Incorrect Password", 401), null);
+        }
       }
-      next(new ServerError("Invalid Password", 401), null);
-    });
+    );
   } catch (error) {
     req.session.error = "Authentication failed. Please try again.";
     console.log(error);
@@ -149,19 +156,18 @@ async function resendVerificationEmail(req, res, next) {
   try {
     const token = await Token.findOne({
       token: link_token,
-    });
+    }).populate("user");
     if (token === null)
       return res.redirect(`${process.env.CLIENT_URL}/verify-email?error=1`); // Invalid Link
 
-    const user = await User.findById(token.user);
-    if (user === null)
+    if (token.user === null)
       return res.redirect(`${process.env.CLIENT_URL}/verify-email?error=1`); // Invalid Link
 
-    if (user.emailVerified)
+    if (token.user.emailVerified)
       return res.redirect(`${process.env.CLIENT_URL}/verify-email?error=4`); // Email already verified
 
     try {
-      await sendVerificationEmail(user);
+      await sendVerificationEmail(token.user);
     } catch (e) {
       return res.redirect(`${process.env.CLIENT_URL}/verify-email?error=5`); // Error sending email
     }
@@ -191,7 +197,7 @@ function generateVerificationEmailContent(user, token) {
         instructions:
           "To complete your registration, please verify your email address by clicking the button below:",
         button: {
-          color: "#22BC66",
+          color: "#836FFF",
           text: "Verify your email",
           link: verificationLink,
         },
@@ -233,10 +239,123 @@ async function verifyEmail(req, res, next) {
   }
 }
 
+async function forgotPassword(req, res, next) {
+  const email = req.body.email;
+
+  try {
+    const user = await User.findOne({
+      email: email,
+    });
+
+    if (user === null) return next(new ServerError("User not found", 404));
+
+    const gen_token = generateToken();
+
+    const token = new Token({
+      user: user._id,
+      token: gen_token,
+      // expires in 10 minutes
+      expires: Date.now() + 600000,
+      type: "password_reset",
+    });
+
+    token.save();
+
+    const emailContent = generatePasswordResetEmailContent(user, gen_token);
+
+    await sendEmail({
+      to: user.email,
+      subject: "Reset your password",
+      html: emailContent,
+    });
+
+    res.status(200).send({
+      message: "Password reset email sent",
+    });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+}
+
+function generatePasswordResetEmailContent(user, token) {
+  const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
+
+  let mailGenerator = new Mailgen({
+    theme: "cerberus",
+    product: {
+      name: "ATFS",
+      link: process.env.CLIENT_URL,
+    },
+  });
+
+  let email = {
+    body: {
+      name: user.name.split(" ")[0],
+      intro: "You have requested to reset your password.",
+      action: {
+        instructions: "To reset your password, please click the button below:",
+        button: {
+          color: "#836FFF",
+          text: "Reset your password",
+          link: resetLink,
+        },
+      },
+      outro:
+        "If you did not request a password reset, please ignore this email.",
+      signature: false,
+    },
+  };
+
+  return mailGenerator.generate(email);
+}
+
+async function resetPassword(req, res, next) {
+  const link_token = req.query.token;
+  const password = req.body.password;
+
+  try {
+    const token = await Token.findOne({
+      token: link_token,
+    }).populate("user");
+
+    if (token === null) return next(new ServerError("Invalid token", 400));
+
+    if (token.used) return next(new ServerError("Token already used", 400));
+
+    if (token.expires < Date.now())
+      return next(new ServerError("Token expired", 400));
+
+    if (!validatePassword(password))
+      return next(new ServerError("Invalid password", 400));
+
+    const user = token.user;
+    hash({ password: password }, async function (err, pass, salt, hash) {
+      if (err) return next(err);
+
+      user.salt = salt;
+      user.hash = hash;
+      await user.save();
+
+      token.used = true;
+      await token.save();
+
+      res.status(200).send({
+        message: "Password reset successfully",
+      });
+    });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+}
+
 module.exports = {
   authenticate,
   restrict,
   registerUser,
   verifyEmail,
   resendVerificationEmail,
+  forgotPassword,
+  resetPassword,
 };

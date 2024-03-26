@@ -6,6 +6,8 @@ const {
   registerUser,
   verifyEmail,
   resendVerificationEmail,
+  forgotPassword,
+  resetPassword,
 } = require("../controllers/auth.controller");
 
 router.post("/login", authenticate);
@@ -23,5 +25,9 @@ router.get("/logout", function (req, res) {
 router.get("/resend-verification-email", resendVerificationEmail);
 
 router.get("/verify", verifyEmail);
+
+router.post("/forgot-password", forgotPassword);
+
+router.post("/reset-password", resetPassword);
 
 module.exports = router;
