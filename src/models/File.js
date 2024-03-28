@@ -49,6 +49,8 @@ const FileSchema = new mongoose.Schema(
   }
 );
 
+FileSchema.index({ title: "text", description: "text" });
+
 const File = mongoose.model("File", FileSchema);
 
 module.exports = File;

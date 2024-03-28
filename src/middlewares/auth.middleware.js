@@ -1,25 +1,41 @@
 const User = require("../models/User");
 const ServerError = require("../utils/errors.utils");
+const jwt = require("jsonwebtoken");
 
-function restrict(req, res, next) {
-  console.log("USER", req.session.user);
-  if (req.session.user) {
+async function restrict(req, res, next) {
+  const token = await req.headers.authorization.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, process.env.COOKIE_SECRET);
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      next(new ServerError("Unauthorized", 401));
+    }
+
+    req.session.user = user;
     next();
-  } else {
+  } catch (error) {
     next(new ServerError("Unauthorized", 401));
   }
 }
 
 async function restrictToAdmin(req, res, next) {
-  console.log("USER", req.session.user);
-  if (req.session.user) {
-    const user = await User.findById(req.session.user._id);
-    if (user.isAdmin === true) {
-      next();
-    } else {
-      next(new ServerError("Forbidden", 403));
+  const token = await req.headers.authorization.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, process.env.COOKIE_SECRET);
+
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      next(new ServerError("Unauthorized", 401));
     }
-  } else {
+    if (user.isAdmin !== true) {
+      next(new ServerError("Unauthorized", 401));
+    }
+
+    req.session.user = user;
+    next();
+  } catch (error) {
     next(new ServerError("Unauthorized", 401));
   }
 }

@@ -23,7 +23,7 @@ if (process.env.NODE_ENV !== "production") {
 const app = express();
 
 const corsOptions = {
-  origin: process.env.CLIENT_URL,
+  origin: [process.env.CLIENT_URL],
   credentials: true, //access-control-allow-credentials:true
   optionSuccessStatus: 200,
 };
@@ -38,6 +38,7 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
 app.use(logger("dev"));
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(helmet());
 app.use(express.urlencoded({ extended: false }));
@@ -47,9 +48,13 @@ app.use(
     resave: false, // don't save session if unmodified
     saveUninitialized: false, // don't create session until something stored
     secret: process.env.COOKIE_SECRET,
+    cookie: {
+      secure: false,
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 365, // 1 year
+    },
   })
 );
-app.use(cors(corsOptions));
 app.use(express.static(path.join(__dirname, "public")));
 
 // Session-persisted message middleware

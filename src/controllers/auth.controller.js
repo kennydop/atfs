@@ -5,8 +5,15 @@ const { validateEmail, validatePassword } = require("../utils/validator.utils");
 var Mailgen = require("mailgen");
 const { sendEmail } = require("../utils/email.utils");
 const { generateToken } = require("../utils/tokens.utils");
+const jwt = require("jsonwebtoken");
 
 var hash = require("pbkdf2-password")();
+
+const cookieOptions = {
+  expires: new Date(Date.now() + 24 * 3600000),
+  secure: false,
+  httpOnly: true,
+};
 
 // Authenticate using our plain-object database
 async function authenticate(req, res, next) {
@@ -31,16 +38,21 @@ async function authenticate(req, res, next) {
       async function (err, pass, salt, hash) {
         if (err) return next(err);
         if (hash === user.hash) {
-          await req.session.regenerate(function () {
-            // Store the user's primary key
-            // in the session store to be retrieved,
-            // or in this case the entire user object
-            req.session.user = user;
-            req.session.success = `Authenticated as ${user.name}`;
-          });
+          // if the user is found and the password is correct
+          // create and send a token to the client as a cookie
+          const token = jwt.sign(
+            {
+              id: user._id,
+              email: user.email,
+              name: user.name,
+              profilePicture: user.profilePicture,
+            },
+            process.env.COOKIE_SECRET
+          );
+          res.cookie("token", token, cookieOptions);
           return res.status(200).send({
             message: "Authenticated successfully",
-            user: user,
+            token: token,
           });
         } else {
           return next(new ServerError("Incorrect Password", 401), null);
@@ -94,17 +106,24 @@ async function registerUser(req, res, next) {
 
       newUser.save();
 
-      req.session.regenerate(function () {
-        req.session.user = newUser;
-        req.session.success = `Authenticated as ${newUser.name}`;
-      });
-
       try {
-        await sendVerificationEmail(newUser);
+        sendVerificationEmail(newUser);
       } catch (e) {
         console.log(e);
       }
 
+      // create and send a token to the client as a cookie
+      const token = jwt.sign(
+        {
+          id: newUser._id,
+          email: newUser.email,
+          name: newUser.name,
+          profilePicture: newUser.profilePicture,
+        },
+        process.env.COOKIE_SECRET
+      );
+
+      res.cookie("token", token, cookieOptions);
       res.status(201).send({
         message: "User created successfully",
         user: newUser,

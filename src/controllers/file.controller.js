@@ -131,8 +131,46 @@ function generateFileEmailEmailContent(fromUser, toUser, file, sendingToSelf) {
   return mailGenerator.generate(email);
 }
 
+// fetches files in batches
+async function fetchFiles(req, res, next) {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const files = await File.find()
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .exec();
+    const count = await File.countDocuments();
+    res.status(200).send({
+      files,
+      totalPages: Math.ceil(count / limit),
+      currentPage: page,
+    });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+}
+
+// searches for files
+async function searchFiles(req, res, next) {
+  try {
+    const { query } = req.query;
+    const files = await File.find({
+      $text: { $search: query },
+    });
+    res.status(200).send({
+      files,
+    });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+}
+
 module.exports = {
   upload,
   download,
   emailFile,
+  fetchFiles,
+  searchFiles,
 };
