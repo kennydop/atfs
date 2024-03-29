@@ -8,7 +8,10 @@ const {
   resendVerificationEmail,
   forgotPassword,
   resetPassword,
+  sendVerificationEmail,
 } = require("../controllers/auth.controller");
+const { restrict, decodeUser } = require("../middlewares/auth.middleware");
+const ServerError = require("../utils/errors.utils");
 
 router.post("/login", authenticate);
 
@@ -22,7 +25,25 @@ router.get("/logout", function (req, res) {
   });
 });
 
-router.get("/resend-verification-email", resendVerificationEmail);
+router.get("/send-verification-email", decodeUser, function (req, res, next) {
+  try {
+    if (req.session.user) {
+      sendVerificationEmail(req.session.user);
+      res.json({
+        success: true,
+        message: "Verification email sent!",
+      });
+    } else if (req.query.token) {
+      console.log("resending verification email");
+      resendVerificationEmail(req, res, next);
+    } else {
+      next(new ServerError("Unauthorized", 401));
+    }
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+});
 
 router.get("/verify", verifyEmail);
 

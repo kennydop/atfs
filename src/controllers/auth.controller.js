@@ -165,7 +165,13 @@ async function resendVerificationEmail(req, res, next) {
   try {
     const token = await Token.findOne({
       token: link_token,
-    }).populate("user");
+      type: "email_verification",
+    })
+      .populate("user")
+      .exec()
+      .exec();
+
+    console.log(token);
     if (token === null)
       return res.redirect(`${process.env.CLIENT_URL}/verify-email?error=1`); // Invalid Link
 
@@ -226,15 +232,23 @@ async function verifyEmail(req, res, next) {
     // check if token exists
     const token = await Token.findOne({
       token: link_token,
+      type: "email_verification",
     });
+
     if (token === null)
-      return res.redirect(`${process.env.CLIENT_URL}/verify-email?error=1`); // Invalid Link
+      return res.redirect(
+        `${process.env.CLIENT_URL}/verify-email?error=1&token=${link_token}`
+      ); // Invalid Link
     // check if token is not used
     if (token.used)
-      return res.redirect(`${process.env.CLIENT_URL}/verify-email?error=2`); // Link already used
+      return res.redirect(
+        `${process.env.CLIENT_URL}/verify-email?error=2&token=${link_token}`
+      ); // Link already used
     // check if token is not expired
     if (token.expires < Date.now())
-      return res.redirect(`${process.env.CLIENT_URL}/verify-email?error=3`); // Link expired
+      return res.redirect(
+        `${process.env.CLIENT_URL}/verify-email?error=3&token=${link_token}`
+      ); // Link expired
     // mark token as used
     token.used = true;
     token.save();
@@ -326,7 +340,10 @@ async function resetPassword(req, res, next) {
   try {
     const token = await Token.findOne({
       token: link_token,
-    }).populate("user");
+      type: "password_reset",
+    })
+      .populate("user")
+      .exec();
 
     if (token === null) return next(new ServerError("Invalid token", 400));
 
@@ -363,6 +380,7 @@ module.exports = {
   authenticate,
   registerUser,
   verifyEmail,
+  sendVerificationEmail,
   resendVerificationEmail,
   forgotPassword,
   resetPassword,
